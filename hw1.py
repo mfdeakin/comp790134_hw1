@@ -18,12 +18,22 @@ def prob2():
     
     print('Problem 2, Part 2')
     # Now look at a large number of possible decision lines
-    for w1 in np.linspace(-1, 1, 4):
-        for w2 in np.linspace(0, 1, 2):
+    verticalPixels = 512
+    horizontalPixels = verticalPixels // 2
+    heatmap = np.zeros((horizontalPixels, verticalPixels))
+    for w1 in np.linspace(-1, 1, verticalPixels):
+        for w2 in np.linspace(0, 1, horizontalPixels):
             if w1 == 0.0 and w2 == 0.0:
                 # A bad decision line
                 continue
-            boas = optimizeBoas(data, [w1, w2])
+            (b, cost) = optimizeBoas(data, [w1, w2])
+            hPos = np.int(w2 * (horizontalPixels - 1) + 1e-4)
+            vPos = np.int(((w1 + 1) * (verticalPixels - 1)) / 2 + 1e-4)
+            heatmap[hPos][vPos] = cost
+    plt.clf()
+    extents = [0, 1, -1, 1]
+    plt.imshow(heatmap.T, extent = extents)
+    plt.show()
 
 def optimizeBoas(data, decisionLine):
     # We can simplify the determination of the boas number by
@@ -67,7 +77,13 @@ def optimizeBoas(data, decisionLine):
     b = -point[0] * decisionLine[0] - point[1] * decisionLine[1]
     # Perturb Boas number to make it automatically satisfy the minimum requirement
     epsilon = 1e-9
-    return b
+    if minCostIndex == -1:
+        # Perturb b so the point is in the plus side
+        b += epsilon
+    else:
+        # Perturb b so the point is in the minus side
+        b -= epsilon
+    return (b, minWrong)
 
 if __name__ == '__main__':
     random.seed()

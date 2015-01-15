@@ -20,22 +20,44 @@ def prob2():
     # Now look at a large number of possible decision lines
     verticalPixels = 512
     horizontalPixels = verticalPixels // 2
-    heatmap = np.zeros((horizontalPixels, verticalPixels))
+    heatmap01 = np.zeros((horizontalPixels, verticalPixels))
+    heatmapHinge = np.zeros((horizontalPixels, verticalPixels))
     for w1 in np.linspace(-1, 1, verticalPixels):
         for w2 in np.linspace(0, 1, horizontalPixels):
             if w1 == 0.0 and w2 == 0.0:
                 # A bad decision line
                 continue
-            (b, cost) = optimizeBoas(data, [w1, w2])
             hPos = np.int(w2 * (horizontalPixels - 1) + 1e-4)
             vPos = np.int(((w1 + 1) * (verticalPixels - 1)) / 2 + 1e-4)
-            heatmap[hPos][vPos] = cost
+            (_, cost01) = optimizeBoas01(data, [w1, w2])
+            heatmap01[hPos][vPos] = cost01
+            (_, costHinge) = optimizeBoasHinge(data, [w1, w2])
+            heatmapHinge[hPos][vPos] = costHinge
     plt.clf()
     extents = [0, 1, -1, 1]
-    plt.imshow(heatmap.T, extent = extents)
+    plt.imshow(heatmap01.T, extent = extents)
+    plt.show()
+    plt.imshow(heatmapHinge.T, extent = extents)
     plt.show()
 
-def optimizeBoas(data, decisionLine):
+def optimizeBoasHinge(data, decisionLine):
+    # Check the locations of change in slope for the boas number
+    # These do not correspond to the point locations, unfortunately
+    # I believe this can also be done in O(n log(n)) time, but am out of time
+    minCost = float('inf')
+    minCostBoas = float('inf')
+    for boasPt in data:
+        b = decisionLine[0] * boasPt[0] + decisionLine[1] * boasPt[1] - 1
+        bCost = 0
+        for pt in data:
+            bCost += max(0, 1 - (decisionLine[0] * pt[0] -
+                                 decisionLine[1] * pt[1] - b) * pt[2])
+        if bCost < minCost:
+            minCostBoas = b
+            minCost = bCost
+    return (minCostBoas, minCost)
+
+def optimizeBoas01(data, decisionLine):
     # We can simplify the determination of the boas number by
     # determining the order of the points as seen by a sweep of the decision line
     # The dot product of the points positions with the vector perpendicular
